@@ -234,8 +234,11 @@ def downloadfile(link,filepath):
     try:
         makedirs(filedir)
     except OSError:
-        logging.error('Unable to create directory: %s' % filedir)
-        return
+        # The error is raised even if the directory already exists.  If so, we
+        # ignore the error.
+        if not path.exists(filedir):
+            logging.error('Unable to create directory: %s' % filedir)
+            return
 
     response = urllib2.urlopen(link)
     with open(filepath, 'w') as pdf:

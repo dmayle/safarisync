@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # A more pythonic construct for files
 from __future__ import with_statement
 
@@ -55,12 +54,6 @@ DEFAULT_LOGGING = 'error'
 ###############################################################################
 # Constants related to Safari
 ###############################################################################
-# The list of input values necessary to complete a Safari login.
-SAFARI_LOGIN_FORM = {'login': '',
-                     'password': '',
-                     'rememberpassword': '',
-                     '__submit': 'Login'}
-
 # The list of input values necessary to request pdf generation
 SAFARI_REQUESTPDF_FORM = {'__className': 'pdfdownload',
                           '__dlid': '',
@@ -73,6 +66,9 @@ URL_SAFARI_LOGIN = 'http://my.safaribooksonline.com/login'
 URL_SAFARI_DOWNLOADS = 'http://safari.oreilly.com/mydownloads'
 URL_SAFARI_REQUESTPDF = 'http://safari.oreilly.com/_ajax_overlaypdf' 
 
+###############################################################################
+# On to the source code
+###############################################################################
 def config_cookie_support():
     """Monkey patch the standard library modules to keep session cookies."""
     # If you need to handle cookies in python, you have to monkey patch the
@@ -115,7 +111,6 @@ def safari_login(user, password):
     doc = html.fromstring(urllib2.urlopen(URL_SAFARI_LOGIN).read(), base_url=URL_SAFARI_LOGIN)
 
 
-    #login_forms = [form for form in doc.forms if form.get('name') == 'login']
     login_forms = doc.cssselect('form[name="login"]')
     if not login_forms:
         logging.critical('Unable to find the login form, can\'t continue.')
@@ -172,8 +167,7 @@ def safari_get_downloads(filename=None,syncpath=getcwd()):
         return link
 
     def get_text(cell):
-        """Return the text content of the cell.  If there is none, look for
-        title text and return that.  Otherwise, return an empty string."""
+        "Return the text content of the cell, strip leading and trailing whitespace."
         text = cell.text_content().strip()
 
         # Because of a bug either in lxml, or the libraries it depends on
@@ -207,6 +201,7 @@ def safari_get_downloads(filename=None,syncpath=getcwd()):
             logging.error("Unable to extract download data from cell:\n%s" % html.tostring(row))
             continue
 
+        # Safari book downloads don't have a section text.
         if get_text(sectioncell):
             progress_message = "Handling Section '%s' of Book '%s'" % (get_text(sectioncell), get_text(titlecell))
             pdffile = '%s.pdf' % get_sanitized_path([syncpath, get_text(titlecell), get_text(sectioncell)])
@@ -224,6 +219,7 @@ def safari_get_downloads(filename=None,syncpath=getcwd()):
             else:
                 logging.debug("Reqeusting PDF generation for ID %s" % requestid)
                 requestpdf(requestid, requestid)
+                requested_pdfs = True
         else:
             logging.debug("%d of %d:%s" % (index+1, len(rows), progress_message))
 
@@ -234,7 +230,6 @@ def safari_get_downloads(filename=None,syncpath=getcwd()):
 
 def downloadfile(link,filepath):
     """Download the file from the given link, and save it to the specified filepath"""
-    return
     filedir = path.dirname(filepath)
     try:
         makedirs(filedir)
@@ -251,8 +246,8 @@ def get_sanitized_path(pathlist):
     return path.join(*[sub(INVALID_FILE_CHARS, '_', subpath) for subpath in pathlist])
 
 def requestpdf(downloadid, xmlid):
-    print "Requesting %s" % xmlid
-    return
+    """Submit a PDF generation request.  This is now an AJAX only interface, so
+    we hack it instead of connecting to a web page to fill out the form."""
     form_values = SAFARI_REQUESTPDF_FORM.copy()
     form_values['__dlid'] = downloadid
     form_values['__pdfcurrentxmlid'] = xmlid
@@ -264,6 +259,7 @@ def requestpdf(downloadid, xmlid):
     response.read()
 
 def prompt_user_pass(user, password):
+    "Request a user and password, taking into account data from the command line."
     if not user:
         user = raw_input("Please input the username for your Safari account.\n")
     if not password:
@@ -290,6 +286,9 @@ def main():
                       dest='loglevel',
                       default='error',
                       help='Change the logging level of this application.  Possible choices are "%s".' % ', '.join(LOGLEVELS.keys()))
+    # This normally won't be used unless someone is debugging the html
+    # scraping.  In that case, it saves the effort of supplying the user and
+    # password and connecting to the server.
     parser.add_option('-s','--simulate',
                       dest='simulate',
                       default=None,
@@ -297,7 +296,9 @@ def main():
 
     options, arguments = parser.parse_args()
 
-    # Configure the logger
+    # We only allow a set list of log levels.  If the one supplied is bogus,
+    # use the default, but notify the users in case that means we've munged
+    # some other parameter.
     if options.loglevel not in LOGLEVELS:
         logging.error("Invalid log level '%s', defaulting to '%s'" % (options.loglevel, DEFAULT_LOGGING))
         logging.basicConfig(level=LOGLEVELS[DEFAULT_LOGGING])
@@ -308,10 +309,11 @@ def main():
         filename = path.realpath(path.join(getcwd(), options.simulate))
     else:
         filename = URL_SAFARI_DOWNLOADS
-        # Set up urllib2 to keep cookies.
+
         if not options.username or not options.password:
             options.username, options.password = prompt_user_pass(options.username, options.password)
 
+        # Set up urllib2 to keep cookies.
         config_cookie_support()
         safari_login(options.username,options.password)
 

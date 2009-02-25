@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# A more pythonic construct for files. This requires Python 2.5 or 2.6
-from __future__ import with_statement
 
 # HTML text to DOM library
 from lxml import html, cssselect
@@ -11,7 +9,7 @@ import urllib2, urllib
 from urlparse import urlparse, urlunparse
 
 # To cleanup our book titles so that they can be used as filenames
-from re import sub
+from re import compile
 
 # Tools for working with files and directories
 from os import makedirs, path, getcwd
@@ -24,7 +22,7 @@ import logging
 
 # A regex for selecting out the characters that are invalid and replacing them.
 # TODO Checkout putting Unicode equivalent characters instead...
-INVALID_FILE_CHARS = r'[?%*:|"<>/]'
+INVALID_FILE_CHARS = compile(r'[?%*:|"<>/]')
 
 # A mapping between logging strings and logging levels.
 LOGLEVELS = {'debug': logging.DEBUG,
@@ -219,13 +217,15 @@ def downloadfile(link,filepath):
             logging.error('Unable to create directory: %s' % filedir)
             return
 
-    response = urllib2.urlopen(link)
-    with open(filepath, 'w') as pdf:
-        pdf.write(response.read())
+    # urllib.urlretrieve
+    urllib.urlretrieve(link, filepath)
+    #response = urllib2.urlopen(link)
+    #with open(filepath, 'w') as pdf:
+    #    pdf.write(response.read())
 
 def get_sanitized_path(pathlist):
     """Turn a list of path elements into a path, while sanitizing the characters"""
-    return path.join(*[sub(INVALID_FILE_CHARS, '_', subpath) for subpath in pathlist])
+    return path.join(*[INVALID_FILE_CHARS.sub('_', subpath) for subpath in pathlist])
 
 def requestpdf(downloadid, xmlid):
     """Submit a PDF generation request.  This is now an AJAX only interface, so
@@ -236,8 +236,7 @@ def requestpdf(downloadid, xmlid):
 
     postdata = urllib.urlencode(form_values)
 
-    loginrequest = urllib2.Request("%s?%s" % (URL_SAFARI_REQUESTPDF, postdata))
-    response = urllib2.urlopen(loginrequest)
+    response = urllib2.urlopen("%s?%s" % (URL_SAFARI_REQUESTPDF, postdata))
     response.read()
 
 def prompt_user_pass(user, password):

@@ -1,23 +1,14 @@
-# A more pythonic construct for files
+#!/usr/bin/env python
+# A more pythonic construct for files. This requires Python 2.5 or 2.6
 from __future__ import with_statement
 
-###############################################################################
-# External Dependencies
-###############################################################################
 # HTML text to DOM library
-from lxml import html
-
-# Library for node selection using CSS
+from lxml import html, cssselect
 from lxml import cssselect
 
-###############################################################################
-# Standard Library imports
-###############################################################################
-# Handles all of our connection requests
+# Net and url based tools
 import urllib2, urllib
-
-# To convert data into a fromat valid for GET and POST requests
-from urllib import urlencode
+from urlparse import urlparse, urlunparse
 
 # To cleanup our book titles so that they can be used as filenames
 from re import sub
@@ -28,15 +19,9 @@ from os import makedirs, path, getcwd
 # Module that allows us to prompt for a password without echoing
 from getpass import getpass
 
-# Some tools for understanding URLs
-from urlparse import urlparse, urlunparse
-
 # Standard logging module
 import logging
 
-###############################################################################
-# Generic constants
-###############################################################################
 # A regex for selecting out the characters that are invalid and replacing them.
 # TODO Checkout putting Unicode equivalent characters instead...
 INVALID_FILE_CHARS = r'[?%*:|"<>/]'
@@ -51,9 +36,6 @@ LOGLEVELS = {'debug': logging.DEBUG,
 # The default logging level for this program
 DEFAULT_LOGGING = 'error'
 
-###############################################################################
-# Constants related to Safari
-###############################################################################
 # The list of input values necessary to request pdf generation
 SAFARI_REQUESTPDF_FORM = {'__className': 'pdfdownload',
                           '__dlid': '',
@@ -66,9 +48,6 @@ URL_SAFARI_LOGIN = 'http://my.safaribooksonline.com/login'
 URL_SAFARI_DOWNLOADS = 'http://safari.oreilly.com/mydownloads'
 URL_SAFARI_REQUESTPDF = 'http://safari.oreilly.com/_ajax_overlaypdf' 
 
-###############################################################################
-# On to the source code
-###############################################################################
 def config_cookie_support():
     """Monkey patch the standard library modules to keep session cookies."""
     # If you need to handle cookies in python, you have to monkey patch the
@@ -130,8 +109,8 @@ def safari_login(user, password):
     html.submit_form(login_form)
 
 def safari_get_downloads(filename=None,syncpath=getcwd()):
-    """Return the safari download metadata by retreiving the downloads page and
-    parsing it."""
+    """Connect to Safari to retrieve the data, and then download any files not
+    on the local disk.  Request any unavailable PDFs if necessary."""
     # Read and parse downloads
     print "Getting the list of downloads"
     logging.info("Retrieving Safari downloads page from %s" % filename)
@@ -205,11 +184,11 @@ def safari_get_downloads(filename=None,syncpath=getcwd()):
         if get_text(sectioncell):
             progress_message = "Handling Section '%s' of Book '%s'" % (get_text(sectioncell), get_text(titlecell))
             pdffile = '%s.pdf' % get_sanitized_path([syncpath, get_text(titlecell), get_text(sectioncell)])
-            requestid = get_link(sectioncell)
+            requestid = get_link(sectioncell).lstrip('/')
         else:
             progress_message = "Handling Book %s" % get_text(titlecell)
             pdffile = '%s.pdf' % get_sanitized_path([syncpath, get_text(titlecell), get_text(titlecell)])
-            requestid = get_link(titlecell)
+            requestid = get_link(titlecell).lstrip('/')
 
         if not path.exists(pdffile):
             logging.info("%d of %d:%s" % (index+1, len(rows), progress_message))
@@ -255,7 +234,7 @@ def requestpdf(downloadid, xmlid):
     form_values['__dlid'] = downloadid
     form_values['__pdfcurrentxmlid'] = xmlid
 
-    postdata = urlencode(form_values)
+    postdata = urllib.urlencode(form_values)
 
     loginrequest = urllib2.Request("%s?%s" % (URL_SAFARI_REQUESTPDF, postdata))
     response = urllib2.urlopen(loginrequest)

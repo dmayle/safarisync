@@ -32,7 +32,7 @@ LOGLEVELS = {'debug': logging.DEBUG,
              'critical': logging.CRITICAL}
 
 # The default logging level for this program
-DEFAULT_LOGGING = 'error'
+DEFAULT_LOGGING = 'info'
 
 # The list of input values necessary to request pdf generation
 SAFARI_REQUESTPDF_FORM = {'__className': 'pdfdownload',
@@ -52,7 +52,7 @@ def config_cookie_support():
     # libraries used to fetch files.  The most common libraries used for this
     # purpose are urllib and urllib2 (thankfully, they're consolidated in
     # Python 3, but we're not there yet...)
-    logging.info('Monkey patching system libraries with cookie support.')
+    logging.error('Monkey patching system libraries with cookie support.')
 
     # If you are having problems with your cookies, it will be useful to setup
     # an LWP Cookie jar, which allows us to inspect cookies in a human readable
@@ -84,7 +84,7 @@ def config_cookie_support():
 
 def safari_login(user, password):
     """Login to the Safari website to load a session cookie."""
-    logging.info("Logging in to the Safari website at %s." % URL_SAFARI_LOGIN)
+    logging.debug("Connecting to the Safari website at %s." % URL_SAFARI_LOGIN)
     doc = html.fromstring(urllib2.urlopen(URL_SAFARI_LOGIN).read(), base_url=URL_SAFARI_LOGIN)
 
 
@@ -99,7 +99,7 @@ def safari_login(user, password):
 
     # For the purpose of this script, we assume success, so we don't care about
     # the result.  We really should verify this, though.
-    print "Logging into the account"
+    logging.info("Logging into the account")
     logging.debug('Submitting login form')
 
     # lxml uses urllib by default for downloads.  Since we've patched it for
@@ -110,7 +110,6 @@ def safari_get_downloads(filename=None,syncpath=getcwd()):
     """Connect to Safari to retrieve the data, and then download any files not
     on the local disk.  Request any unavailable PDFs if necessary."""
     # Read and parse downloads
-    print "Getting the list of downloads"
     logging.info("Retrieving Safari downloads page from %s" % filename)
     doc = html.fromstring(urllib.urlopen(filename).read(), base_url=URL_SAFARI_DOWNLOADS)
 
@@ -201,9 +200,9 @@ def safari_get_downloads(filename=None,syncpath=getcwd()):
             logging.debug("%d of %d:%s" % (index+1, len(rows), progress_message))
 
     if requested_pdfs:
-        print "Not all of the missing PDFs were found.  They have been " \
+        logging.info("Not all of the missing PDFs were found.  They have been " \
         "requested from Safari, so please rerun this after generation is " \
-        "complete."
+        "complete.")
 
 def downloadfile(link,filepath):
     """Download the file from the given link, and save it to the specified filepath"""
@@ -265,7 +264,7 @@ def main():
                       help='Path of the folder to sync downloads to.  This defaults to books subdirectory.')
     parser.add_option('-l','--logging',
                       dest='loglevel',
-                      default='error',
+                      default=DEFAULT_LOGGING,
                       help='Change the logging level of this application.  Possible choices are "%s".' % ', '.join(LOGLEVELS.keys()))
     # This normally won't be used unless someone is debugging the html
     # scraping.  In that case, it saves the effort of supplying the user and
@@ -282,9 +281,9 @@ def main():
     # some other parameter.
     if options.loglevel not in LOGLEVELS:
         logging.error("Invalid log level '%s', defaulting to '%s'" % (options.loglevel, DEFAULT_LOGGING))
-        logging.basicConfig(level=LOGLEVELS[DEFAULT_LOGGING])
+        logging.basicConfig(level=LOGLEVELS[DEFAULT_LOGGING], format="%(levelname)-8s %(message)s")
     else:
-        logging.basicConfig(level=LOGLEVELS[options.loglevel])
+        logging.basicConfig(level=LOGLEVELS[options.loglevel], format="%(levelname)-8s %(message)s")
 
     if options.simulate:
         filename = path.realpath(path.join(getcwd(), options.simulate))

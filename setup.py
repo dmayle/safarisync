@@ -23,6 +23,6 @@ A well documented example of screen scraping with lxml.  This example logins in 
       entry_points="""
       # -*- Entry points: -*-
       [console_scripts]
-      safarisync=safarisync:main
+      safarisync=safarisync.safarisync:main
       """,
       )

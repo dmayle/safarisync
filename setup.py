@@ -12,14 +12,17 @@ A well documented example of screen scraping with lxml.  This example logins in 
       keywords='lxml scraping',
       author='Douglas Mayle',
       url='http://douglas.mayle.org',
-      license='GPL3',
+      license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
-      zip_safe=False,
+      zip_safe=True,
       install_requires=[
           # -*- Extra requirements: -*-
+          "lxml",
       ],
       entry_points="""
       # -*- Entry points: -*-
+      [console_scripts]
+      safarisync=safarisync:main
       """,
       )

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 # HTML text to DOM library
-from lxml import html, cssselect
-from lxml import cssselect
+from lxml import html
 
 # Net and url based tools
 import urllib2, urllib

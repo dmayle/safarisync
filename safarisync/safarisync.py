@@ -51,7 +51,7 @@ def config_cookie_support():
     # libraries used to fetch files.  The most common libraries used for this
     # purpose are urllib and urllib2 (thankfully, they're consolidated in
     # Python 3, but we're not there yet...)
-    logging.error('Monkey patching system libraries with cookie support.')
+    logging.debug('Monkey patching system libraries with cookie support.')
 
     # If you are having problems with your cookies, it will be useful to setup
     # an LWP Cookie jar, which allows us to inspect cookies in a human readable
@@ -216,10 +216,10 @@ def downloadfile(link,filepath):
             return
 
     # urllib.urlretrieve
-    urllib.urlretrieve(link, filepath)
-    #response = urllib2.urlopen(link)
-    #with open(filepath, 'w') as pdf:
-    #    pdf.write(response.read())
+    #urllib.urlretrieve(link, filepath)
+    response = urllib2.urlopen(link)
+    with open(filepath, 'wb') as pdf:
+        pdf.write(response.read())
 
 def get_sanitized_path(pathlist):
     """Turn a list of path elements into a path, while sanitizing the characters"""
